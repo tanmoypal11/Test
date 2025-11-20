@@ -1,9 +1,0 @@
-streamlit
-pandas
-numpy
-folium
-streamlit-folium
-scikit-learn==1.5.1
-plotly
-umap-learn
-cloudpickle
