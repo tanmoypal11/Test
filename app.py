@@ -1,133 +1,85 @@
 import streamlit as st
-from pathlib import Path
+import requests
+import os
 
+# --------------------------------------------------
+# PAGE CONFIG
+# --------------------------------------------------
 st.set_page_config(
-    page_title="PatrolIQ – Crime Intelligence System",
-    page_icon="🛡️",
-    layout="wide"
+    page_title="LLM Crop Diagnosis Test",
+    page_icon="🌱",
+    layout="centered"
 )
 
-# ---------------------------
-# Title & Subtitle
-# ---------------------------
-st.title("🛡️ PatrolIQ – Crime Intelligence & Clustering System")
-st.markdown("### A complete machine learning pipeline for understanding crime patterns in Chicago")
+st.title("🧠 LLM Crop Diagnosis (Test Only)")
+st.write("This app tests ONLY the language model response.")
 
-st.markdown("---")
+# --------------------------------------------------
+# USER INPUT
+# --------------------------------------------------
+default_prompt = """Apple___Apple_scab detected with 98.33% confidence
 
-# ---------------------------
-# Project Overview
-# ---------------------------
-st.header("📌 Project Overview")
+Tasks:
+1. Explain the disease(s) in simple farmer-friendly language.
+2. Mention possible causes.
+3. Suggest immediate preventive or corrective actions.
+4. If confidence is below 60%, mention uncertainty politely.
 
-st.markdown("""
-PatrolIQ is a full end-to-end machine learning project that ingests real crime data,
-performs advanced analytics, clusters geographic & temporal crime patterns, and provides
-interactive visualizations through a multi-page Streamlit web app.
+Keep the response concise and practical.
+"""
 
-This system helps identify **crime hotspots**, understand **time-based crime patterns**, and
-analyze **feature importance** using PCA and t-SNE.
-""")
+user_prompt = st.text_area(
+    "Input for LLM",
+    value=default_prompt,
+    height=220
+)
 
-st.markdown("---")
+# --------------------------------------------------
+# HUGGING FACE CONFIG
+# --------------------------------------------------
+HF_MODEL = "google/gemma-2b-it"   # you can change to mistralai/Mistral-7B-Instruct
+HF_API_URL = f"https://api-inference.huggingface.co/models/{HF_MODEL}"
 
-# ---------------------------
-# Step-by-Step Pipeline
-# ---------------------------
-st.header("⚙️ Step-by-Step ML Pipeline")
+HEADERS = {
+    "Authorization": f"Bearer {st.secrets['HF_TOKEN']}",
+    "Content-Type": "application/json"
+}
 
-st.markdown("""
-### **1️⃣ Data Acquisition & Preprocessing**
-- Fetched **500,000 recent crime records** using the Chicago Socrata API.
-- Cleaned missing values.
-- Extracted temporal features:  
-  `Hour`, `DayOfWeek`, `Month`.
-- Added custom **severity score**.
-- Converted coordinates, removed outliers.
+# --------------------------------------------------
+# RUN LLM
+# --------------------------------------------------
+if st.button("▶ Generate Explanation"):
+    with st.spinner("Calling LLM..."):
+        payload = {
+            "inputs": f"""
+You are an agriculture expert.
 
----
+{user_prompt}
 
-### **2️⃣ Exploratory Data Analysis (EDA)**
-- Plotly visualizations for:
-  - Crime trends over time  
-  - Crime type distributions  
-  - Daily/weekly patterns  
+Rules:
+- Only talk about crop disease
+- Simple farmer language
+- Bullet points
+- No unrelated topics
+""",
+            "parameters": {
+                "max_new_tokens": 180,
+                "temperature": 0.2,
+                "top_p": 0.9
+            }
+        }
 
----
+        response = requests.post(
+            HF_API_URL,
+            headers=HEADERS,
+            json=payload,
+            timeout=60
+        )
 
-### **3️⃣ Feature Engineering**
-- Scaled numerical features using **StandardScaler**.
-- One-hot encoded categorical features using **sklearn OneHotEncoder**.
-- Removed low-variance & redundant columns.
-
----
-
-### **4️⃣ Clustering**
-- **Geographic Clustering**  
-  - K-Means  
-  - DBSCAN  
-  - Agglomerative  
-  - Evaluated with Silhouette Score (TARGET > 0.5)
-
-- **Temporal Clustering**  
-  - K-Means on hour/day patterns  
-  - Identified crime-peak times  
-
-All models saved as `.pkl` and integrated into Streamlit.
-
----
-
-### **5️⃣ Dimensionality Reduction**
-- **PCA** → Reduced 22+ features to **2–3 components**, achieving **70%+ variance**.
-- **t-SNE** → High-quality 2D visualization separating crime clusters.
-
-Feature importance extracted from PCA loadings.
-
----
-
-### **6️⃣ MLflow Tracking**
-- Logged:
-  - Clustering parameters  
-  - Silhouette scores  
-  - PCA variance ratios  
-  - t-SNE hyperparameters  
-- Stored models & artifacts in `mlruns/`
-
----
-
-### **7️⃣ Streamlit Application**
-This app includes:
-- 🗺️ **Geographic Heatmap**  
-- ⏱️ **Temporal Pattern Analysis**  
-- 🔍 **Dimensionality Reduction (PCA / t-SNE)**  
-- 📊 **Model Monitoring Dashboard (MLflow Integration)**  
-
-Each module is in the `pages/` folder.
-
----
-
-### **8️⃣ Deployment Pipeline**
-- Prepared production folder structure  
-- Added `requirements.txt`  
-- Deployable to **Streamlit Cloud** via GitHub  
-
-""")
-
-st.markdown("---")
-
-# ---------------------------
-# Expected Results Section
-# ---------------------------
-st.header("🎯 Expected Results")
-
-st.markdown("""
-- **Geographic clusters:** 5–10 stable hotspots  
-- **Temporal clusters:** 3–5 meaningful patterns  
-- **PCA:** 70–85% variance retention  
-- **Visuals:** Heatmaps, t-SNE plots, PCA scatter  
-- **Fully interactive multi-page dashboard**  
-""")
-
-st.success("Use the left sidebar to navigate between analysis modules.")
-
-st.markdown("---")
+    if response.status_code == 200:
+        output = response.json()
+        st.subheader("🧾 LLM Output")
+        st.write(output[0]["generated_text"])
+    else:
+        st.error("LLM call failed")
+        st.code(response.text)
