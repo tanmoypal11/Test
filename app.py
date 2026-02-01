@@ -12,7 +12,7 @@ st.set_page_config(
 )
 
 st.title("🧠 LLM Crop Diagnosis (Test Only)")
-st.write("This app tests ONLY the language model response.")
+st.write("Testing Hugging Face hosted LLM via router API")
 
 # --------------------------------------------------
 # USER INPUT
@@ -35,13 +35,19 @@ user_prompt = st.text_area(
 )
 
 # --------------------------------------------------
-# HUGGING FACE CONFIG
+# HUGGING FACE CONFIG (NEW ROUTER ENDPOINT)
 # --------------------------------------------------
-HF_MODEL = "google/gemma-2b-it"   # you can change to mistralai/Mistral-7B-Instruct
-HF_API_URL = f"https://api-inference.huggingface.co/models/{HF_MODEL}"
+HF_MODEL = "google/gemma-2b-it"
+HF_API_URL = f"https://router.huggingface.co/hf-inference/models/{HF_MODEL}"
+
+HF_TOKEN = st.secrets.get("HF_TOKEN") or os.getenv("HF_TOKEN")
+
+if not HF_TOKEN:
+    st.error("❌ HF_TOKEN not found. Add it to Streamlit Secrets.")
+    st.stop()
 
 HEADERS = {
-    "Authorization": f"Bearer {st.secrets['HF_TOKEN']}",
+    "Authorization": f"Bearer {HF_TOKEN}",
     "Content-Type": "application/json"
 }
 
@@ -54,13 +60,13 @@ if st.button("▶ Generate Explanation"):
             "inputs": f"""
 You are an agriculture expert.
 
-{user_prompt}
-
 Rules:
 - Only talk about crop disease
-- Simple farmer language
-- Bullet points
+- Use simple farmer language
+- Bullet points only
 - No unrelated topics
+
+{user_prompt}
 """,
             "parameters": {
                 "max_new_tokens": 180,
@@ -81,5 +87,5 @@ Rules:
         st.subheader("🧾 LLM Output")
         st.write(output[0]["generated_text"])
     else:
-        st.error("LLM call failed")
+        st.error("❌ LLM call failed")
         st.code(response.text)
