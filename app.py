@@ -9,7 +9,7 @@ st.set_page_config(
 )
 
 st.title("🧠 LLM Crop Diagnosis (Test Only)")
-st.write("Testing Hugging Face Inference Router")
+st.write("Testing Hugging Face Inference Router with small model (CPU friendly)")
 
 # ---------------- USER INPUT ----------------
 default_prompt = """Apple___Apple_scab detected with 98.33% confidence
@@ -30,11 +30,10 @@ user_prompt = st.text_area(
 )
 
 # ---------------- HF CONFIG ----------------
-HF_MODEL = "mistralai/Mistral-7B-Instruct-v0.2"
+HF_MODEL = "google/flan-t5-small"  # CPU-friendly
 HF_API_URL = f"https://router.huggingface.co/hf-inference/models/{HF_MODEL}"
 
 HF_TOKEN = st.secrets.get("HF_TOKEN") or os.getenv("HF_TOKEN")
-
 if not HF_TOKEN:
     st.error("❌ HF_TOKEN missing. Add it to Streamlit Secrets.")
     st.stop()
