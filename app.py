@@ -1,55 +1,63 @@
 import streamlit as st
 from groq import Groq
 
-# 1. MUST BE FIRST: Set page config before any other st. commands
-st.set_page_config(page_title="Gemma Chatbot", page_icon="🤖")
+# 1. Page Config must be first
+st.set_page_config(page_title="Plant Disease AI", page_icon="🌿")
 
-# 2. Sidebar for model selection
-st.sidebar.title("Settings")
+# 2. Sidebar Settings
+st.sidebar.title("Configuration")
 model_option = st.sidebar.selectbox(
     "Choose a model:",
-    (
-        "llama-3.1-8b-instant",      # Fast & Great for Chat
-        "llama-3.3-70b-versatile",   # High Intelligence
-        "deepseek-r1-distill-llama-70b" # Deep Reasoning
-    )
+    ("llama-3.3-70b-versatile", "llama-3.1-8b-instant", "deepseek-r1-distill-llama-70b")
 )
 
-st.title("💬 Chat with AI")
-st.caption(f"Currently using: {model_option}")
+if st.sidebar.button("🗑️ Clear Chat"):
+    st.session_state.messages = []
+    st.rerun()
 
-# Access your API Key from Streamlit Secrets
-client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+st.title("🌿 Plant Disease Assistant")
+st.info("I can help identify issues like Apple Scab and suggest treatments.")
 
+# 3. Initialize Groq Client
+try:
+    client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+except Exception as e:
+    st.error("Missing API Key! Please add it to Streamlit Secrets.")
+    st.stop()
+
+# 4. Initialize Chat History
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Display chat history
+# Display Chat History
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# User input
-if prompt := st.chat_input("Ask me anything..."):
+# 5. Chat Logic
+if prompt := st.chat_input("Ask about Apple Scab treatment..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Generate response
     with st.chat_message("assistant"):
         try:
+            # Call API with streaming
             stream = client.chat.completions.create(
                 model=model_option,
-                messages=st.session_state.messages,
+                messages=[
+                    {"role": m["role"], "content": m["content"]}
+                    for m in st.session_state.messages
+                ],
                 stream=True,
             )
-            response = st.write_stream(stream)
             
-            # FIX: Only append if response is a valid string and not empty
-            if response:
-                st.session_state.messages.append({"role": "assistant", "content": str(response)})
-            else:
-                st.error("The model returned an empty response. Please try again.")
+            # Stream the response to UI and capture the full string
+            full_response = st.write_stream(stream)
+            
+            # CRITICAL: Only save to history if the response isn't empty
+            if full_response:
+                st.session_state.messages.append({"role": "assistant", "content": full_response})
         
         except Exception as e:
-            st.error(f"An error occurred: {e}")
+            st.error(f"Error: {e}")
