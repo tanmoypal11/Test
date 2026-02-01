@@ -37,10 +37,19 @@ if prompt := st.chat_input("Ask me anything..."):
 
     # Generate response
     with st.chat_message("assistant"):
-        stream = client.chat.completions.create(
-            model=model_option,  # <--- UPDATED: Uses the sidebar selection
-            messages=st.session_state.messages,
-            stream=True,
-        )
-        response = st.write_stream(stream)
-    st.session_state.messages.append({"role": "assistant", "content": response})
+        try:
+            stream = client.chat.completions.create(
+                model=model_option,
+                messages=st.session_state.messages,
+                stream=True,
+            )
+            response = st.write_stream(stream)
+            
+            # FIX: Only append if response is a valid string and not empty
+            if response:
+                st.session_state.messages.append({"role": "assistant", "content": str(response)})
+            else:
+                st.error("The model returned an empty response. Please try again.")
+        
+        except Exception as e:
+            st.error(f"An error occurred: {e}")
