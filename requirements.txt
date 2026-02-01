@@ -1,10 +1,2 @@
 streamlit
-pandas
-numpy
-folium
-streamlit-folium
-scikit-learn
-plotly
-umap-learn
-cloudpickle
-
+groq
