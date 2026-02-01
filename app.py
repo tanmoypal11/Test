@@ -1,63 +1,45 @@
 import streamlit as st
 from groq import Groq
 
-# 1. Page Config must be first
-st.set_page_config(page_title="Plant Disease AI", page_icon="🌿")
+st.set_page_config(page_title="Simple Chat", page_icon="🤖")
+st.title("🤖 Chat with AI")
 
-# 2. Sidebar Settings
-st.sidebar.title("Configuration")
-model_option = st.sidebar.selectbox(
-    "Choose a model:",
-    ("llama-3.3-70b-versatile", "llama-3.1-8b-instant", "deepseek-r1-distill-llama-70b")
-)
+# Initialize client
+client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
-if st.sidebar.button("🗑️ Clear Chat"):
-    st.session_state.messages = []
-    st.rerun()
-
-st.title("🌿 Plant Disease Assistant")
-st.info("I can help identify issues like Apple Scab and suggest treatments.")
-
-# 3. Initialize Groq Client
-try:
-    client = Groq(api_key=st.secrets["GROQ_API_KEY"])
-except Exception as e:
-    st.error("Missing API Key! Please add it to Streamlit Secrets.")
-    st.stop()
-
-# 4. Initialize Chat History
+# Initialize history
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Display Chat History
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+# Display history
+for msg in st.session_state.messages:
+    st.chat_message(msg["role"]).write(msg["content"])
 
-# 5. Chat Logic
-if prompt := st.chat_input("Ask about Apple Scab treatment..."):
+# User Input
+if prompt := st.chat_input():
     st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
+    st.chat_message("user").write(prompt)
 
+    # Response Generation
     with st.chat_message("assistant"):
-        try:
-            # Call API with streaming
-            stream = client.chat.completions.create(
-                model=model_option,
-                messages=[
-                    {"role": m["role"], "content": m["content"]}
-                    for m in st.session_state.messages
-                ],
-                stream=True,
-            )
-            
-            # Stream the response to UI and capture the full string
-            full_response = st.write_stream(stream)
-            
-            # CRITICAL: Only save to history if the response isn't empty
-            if full_response:
-                st.session_state.messages.append({"role": "assistant", "content": full_response})
+        # We use a placeholder to update the text as it streams
+        response_placeholder = st.empty()
+        full_response = ""
         
-        except Exception as e:
-            st.error(f"Error: {e}")
+        # Call the API
+        completion = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": m["role"], "content": m["content"]} for m in st.session_state.messages],
+            stream=True
+        )
+
+        # Loop through the stream chunks
+        for chunk in completion:
+            # This extracts JUST the text content from the JSON
+            content = chunk.choices[0].delta.content
+            if content:
+                full_response += content
+                response_placeholder.markdown(full_response)
+
+        # Save to history
+        st.session_state.messages.append({"role": "assistant", "content": full_response})
