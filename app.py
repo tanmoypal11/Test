@@ -2,9 +2,6 @@ import streamlit as st
 import requests
 import os
 
-# --------------------------------------------------
-# PAGE CONFIG
-# --------------------------------------------------
 st.set_page_config(
     page_title="LLM Crop Diagnosis Test",
     page_icon="🌱",
@@ -12,11 +9,9 @@ st.set_page_config(
 )
 
 st.title("🧠 LLM Crop Diagnosis (Test Only)")
-st.write("Testing Hugging Face hosted LLM via router API")
+st.write("Testing Hugging Face Inference Router")
 
-# --------------------------------------------------
-# USER INPUT
-# --------------------------------------------------
+# ---------------- USER INPUT ----------------
 default_prompt = """Apple___Apple_scab detected with 98.33% confidence
 
 Tasks:
@@ -34,16 +29,14 @@ user_prompt = st.text_area(
     height=220
 )
 
-# --------------------------------------------------
-# HUGGING FACE CONFIG (NEW ROUTER ENDPOINT)
-# --------------------------------------------------
-HF_MODEL = "google/gemma-2b-it"
+# ---------------- HF CONFIG ----------------
+HF_MODEL = "mistralai/Mistral-7B-Instruct-v0.2"
 HF_API_URL = f"https://router.huggingface.co/hf-inference/models/{HF_MODEL}"
 
 HF_TOKEN = st.secrets.get("HF_TOKEN") or os.getenv("HF_TOKEN")
 
 if not HF_TOKEN:
-    st.error("❌ HF_TOKEN not found. Add it to Streamlit Secrets.")
+    st.error("❌ HF_TOKEN missing. Add it to Streamlit Secrets.")
     st.stop()
 
 HEADERS = {
@@ -51,9 +44,7 @@ HEADERS = {
     "Content-Type": "application/json"
 }
 
-# --------------------------------------------------
-# RUN LLM
-# --------------------------------------------------
+# ---------------- RUN LLM ----------------
 if st.button("▶ Generate Explanation"):
     with st.spinner("Calling LLM..."):
         payload = {
@@ -61,9 +52,9 @@ if st.button("▶ Generate Explanation"):
 You are an agriculture expert.
 
 Rules:
-- Only talk about crop disease
-- Use simple farmer language
-- Bullet points only
+- ONLY crop disease
+- Simple farmer language
+- Bullet points
 - No unrelated topics
 
 {user_prompt}
