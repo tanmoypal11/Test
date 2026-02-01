@@ -1,6 +1,14 @@
 import streamlit as st
 from groq import Groq
+# Add this to your sidebar
 
+model_option = st.sidebar.selectbox(
+    "Choose a model:",
+    ("llama-3.1-8b-instant", "llama-3.3-70b-versatile", "deepseek-r1-distill-llama-70b")
+)
+
+# Then use it in the API call
+model=model_option
 st.set_page_config(page_title="Gemma Chatbot", page_icon="🤖")
 st.title("💬 Chat with Gemma")
 
@@ -31,3 +39,4 @@ if prompt := st.chat_input("Ask me anything..."):
         )
         response = st.write_stream(stream)
     st.session_state.messages.append({"role": "assistant", "content": response})
+
