@@ -1,19 +1,24 @@
 import streamlit as st
 from groq import Groq
-# Add this to your sidebar
 
+# 1. MUST BE FIRST: Set page config before any other st. commands
+st.set_page_config(page_title="Gemma Chatbot", page_icon="🤖")
+
+# 2. Sidebar for model selection
+st.sidebar.title("Settings")
 model_option = st.sidebar.selectbox(
     "Choose a model:",
-    ("llama-3.1-8b-instant", "llama-3.3-70b-versatile", "deepseek-r1-distill-llama-70b")
+    (
+        "llama-3.1-8b-instant",      # Fast & Great for Chat
+        "llama-3.3-70b-versatile",   # High Intelligence
+        "deepseek-r1-distill-llama-70b" # Deep Reasoning
+    )
 )
 
-# Then use it in the API call
-model=model_option
-st.set_page_config(page_title="Gemma Chatbot", page_icon="🤖")
-st.title("💬 Chat with Gemma")
+st.title("💬 Chat with AI")
+st.caption(f"Currently using: {model_option}")
 
 # Access your API Key from Streamlit Secrets
-# (We will set this up in the Cloud dashboard)
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
 if "messages" not in st.session_state:
@@ -33,10 +38,9 @@ if prompt := st.chat_input("Ask me anything..."):
     # Generate response
     with st.chat_message("assistant"):
         stream = client.chat.completions.create(
-            model="gemma2-9b-it", # Or use "mistral-large-latest" for Mistral
+            model=model_option,  # <--- UPDATED: Uses the sidebar selection
             messages=st.session_state.messages,
             stream=True,
         )
         response = st.write_stream(stream)
     st.session_state.messages.append({"role": "assistant", "content": response})
-
